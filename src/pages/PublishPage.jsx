@@ -51,7 +51,7 @@ const PublishPage = () => {
   };
 
   // Generate QR codes once for consistent display
-  const qrCodes = generateRandomQrData(3);
+  const qrCodes = generateRandomQrData(1);
 
   useEffect(() => {
     if (editArticleId) {
@@ -132,15 +132,15 @@ const PublishPage = () => {
         throw new Error("Failed to get article ID after publishing")
       }
       
-      console.log("Article published successfully with ID:", newArticleId)
+      console.log("Article waiting for payment with ID:", newArticleId)
       setFormMessage({ type: "success", text: "Article published successfully!" })
       setPublishedArticleId(newArticleId)
       setShowSuccess(true)
       
       // Navigate to the published article after a delay
-      setTimeout(() => {
-        navigate(`/article/${newArticleId}`)
-      }, 10000) // Give users 10 seconds to see the QR codes
+      // setTimeout(() => {
+      //   navigate(`/article/${newArticleId}`)
+      // }, 10000) // Give users 10 seconds to see the QR codes
     } catch (error) {
       console.error("Error publishing article:", error)
       setFormMessage({ 
@@ -180,7 +180,7 @@ const PublishPage = () => {
                 </motion.div>
                 <h2 className="text-3xl font-bold text-gray-800">Article Published Successfully!</h2>
                 <p className="text-gray-600 mt-2">Your article has been published and is now available to readers.</p>
-                <p className="text-gray-500 mt-1">You'll be redirected to your article shortly...</p>
+                {/* <p className="text-gray-500 mt-1">You'll be redirected to your article shortly...</p> */}
               </div>
               
               <div className="mb-6">
