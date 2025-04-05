@@ -133,7 +133,7 @@ const PublishPage = () => {
       }
       
       console.log("Article waiting for payment with ID:", newArticleId)
-      setFormMessage({ type: "success", text: "Article published successfully!" })
+      setFormMessage({ type: "success", text: "Articlsse published successfully!" })
       setPublishedArticleId(newArticleId)
       setShowSuccess(true)
       
@@ -178,41 +178,42 @@ const PublishPage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </motion.div>
-                <h2 className="text-3xl font-bold text-gray-800">Article Published Successfully!</h2>
-                <p className="text-gray-600 mt-2">Your article has been published and is now available to readers.</p>
+                <h2 className="text-3xl font-bold text-gray-800">Article waiting for payment!</h2>
+                <p className="text-gray-600 mt-2">Your article is ready to be published and is now waiting for payment.</p>
                 {/* <p className="text-gray-500 mt-1">You'll be redirected to your article shortly...</p> */}
               </div>
               
               <div className="mb-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Bitcoin Donation QR Codes</h3>
-                <p className="text-gray-600 mb-6 text-center">Scan any of these QR codes to donate. These codes are for demonstration purposes only.</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {qrCodes.map((qr, index) => (
-                    <motion.div 
-                      key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 + (index * 0.2) }}
-                      className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col items-center"
-                    >
-                      <div className="mb-3 bg-white p-3 rounded-lg shadow-sm">
-                        <QRCodeSVG 
-                          value={`bitcoin:${qr.address}?amount=${qr.amount / 100000000}`} 
-                          size={140}
-                          bgColor={"#ffffff"}
-                          fgColor={"#000000"}
-                          level={"M"}
-                          includeMargin={false}
-                        />
-                      </div>
-                      <p className="font-medium text-gray-800">{qr.label}</p>
-                      <p className="text-sm text-gray-500 mt-1">{qr.amount} satoshis</p>
-                      <p className="text-xs text-gray-400 mt-2 truncate w-full text-center">{qr.address.substring(0, 12)}...</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
+  <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Bitcoin Donation QR Code</h3>
+  <p className="text-gray-600 mb-6 text-center">Scan this QR code to donate. This code is for demonstration purposes only.</p>
+  
+  {/* Changed from grid to flex container with justify-center */}
+  <div className="flex justify-center">
+    {qrCodes.map((qr, index) => (
+      <motion.div 
+        key={index}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 + (index * 0.2) }}
+        className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col items-center max-w-xs"
+      >
+        <div className="mb-3 bg-white p-3 rounded-lg shadow-sm">
+          <QRCodeSVG 
+            value={`bitcoin:${qr.address}?amount=${qr.amount / 100000000}`} 
+            size={180} // Increased the size for better visibility
+            bgColor={"#ffffff"}
+            fgColor={"#000000"}
+            level={"M"}
+            includeMargin={false}
+          />
+        </div>
+        <p className="font-medium text-gray-800">{qr.label}</p>
+        <p className="text-sm text-gray-500 mt-1">{qr.amount} satoshis</p>
+        <p className="text-xs text-gray-400 mt-2 text-center">{qr.address.substring(0, 12)}...</p>
+      </motion.div>
+    ))}
+  </div>
+</div>
               
               <div className="flex justify-center mt-6">
                 <motion.button
