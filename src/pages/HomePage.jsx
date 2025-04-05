@@ -15,7 +15,7 @@ const HomePage = () => {
   return (
     <div className="pt-20">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-cyan-500 to-pink-500 text-white py-20">
+      <section className="bg-gradient-to-r from-[#30f2f2] to-[#1E212B] text-white py-20">
         <div className="container mx-auto px-4 text-center">
           <motion.h1
             initial={{ opacity: 0, y: -20 }}

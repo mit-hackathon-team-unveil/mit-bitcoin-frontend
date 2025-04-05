@@ -1,6 +1,7 @@
 "use client"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
+import logoImage from "../assets/images/Pokecut_1743884539083.png"
 
 const Footer = () => {
   return (
@@ -10,9 +11,14 @@ const Footer = () => {
           <div>
             <Link to="/" className="flex items-center mb-4">
               <motion.div whileHover={{ rotate: 10 }} className="text-3xl mr-2">
-                📰
+                {/* 📰 */}
               </motion.div>
-              <h1 className="text-xl font-bold gradient-text">Web3News</h1>
+              <h1 className="text-xl font-bold gradient-text">
+              <img 
+              src={logoImage} 
+              alt="Web3News" 
+              className="h-8 sm:h-10 md:h-12 lg:h-16 w-auto invert brightness-200"  
+            /></h1>
             </Link>
             <p className="text-gray-400 text-sm">Your trusted source for the latest Web3 news, trends, and insights.</p>
           </div>
