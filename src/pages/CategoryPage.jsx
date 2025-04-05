@@ -9,7 +9,8 @@ import ArticleCard from "../components/ArticleCard"
 const CategoryPage = () => {
   const { categoryId } = useParams()
   const { getArticlesByCategory, getCategoryById } = useArticles()
-  const [articles, setArticles] = useState([])
+  const [recentArticles, setRecentArticles] = useState([])
+  const [previousArticles, setPreviousArticles] = useState([])
   const [category, setCategory] = useState(null)
   const [sortBy, setSortBy] = useState("newest")
 
@@ -18,30 +19,51 @@ const CategoryPage = () => {
       const categoryArticles = getArticlesByCategory(categoryId)
       setCategory(getCategoryById(categoryId))
 
+      // Separate articles into recent (last 24 hours) and previous
+      const currentDate = new Date()
+      const recentArticlesList = categoryArticles.filter(article => {
+        const articleDate = new Date(article.createdAt)
+        const diffTime = Math.abs(currentDate - articleDate)
+        const diffHours = Math.ceil(diffTime / (1000 * 60 * 60))
+        return diffHours <= 24
+      })
+      
+      const previousArticlesList = categoryArticles.filter(article => {
+        const articleDate = new Date(article.createdAt)
+        const diffTime = Math.abs(currentDate - articleDate)
+        const diffHours = Math.ceil(diffTime / (1000 * 60 * 60))
+        return diffHours > 24
+      })
+
       // Sort articles based on selected option
-      sortArticles(categoryArticles, sortBy)
+      sortArticles(recentArticlesList, previousArticlesList, sortBy)
     }
-  }, [categoryId, sortBy])
+  }, [categoryId, sortBy, getArticlesByCategory, getCategoryById])
 
-  const sortArticles = (articleList, sortOption) => {
-    const sortedArticles = [...articleList]
+  const sortArticles = (recentList, previousList, sortOption) => {
+    const sortedRecentArticles = [...recentList]
+    const sortedPreviousArticles = [...previousList]
 
-    switch (sortOption) {
-      case "newest":
-        sortedArticles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        break
-      case "oldest":
-        sortedArticles.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-        break
-      case "most-voted":
-        sortedArticles.sort((a, b) => b.votes - a.votes)
-        break
-      default:
-        // Default to newest
-        sortedArticles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    // Define sort function based on option
+    const sortFunction = (a, b) => {
+      switch (sortOption) {
+        case "newest":
+          return new Date(b.createdAt) - new Date(a.createdAt)
+        case "oldest":
+          return new Date(a.createdAt) - new Date(b.createdAt)
+        case "most-voted":
+          return b.votes - a.votes
+        default:
+          return new Date(b.createdAt) - new Date(a.createdAt)
+      }
     }
 
-    setArticles(sortedArticles)
+    // Apply sorting
+    sortedRecentArticles.sort(sortFunction)
+    sortedPreviousArticles.sort(sortFunction)
+
+    setRecentArticles(sortedRecentArticles)
+    setPreviousArticles(sortedPreviousArticles)
   }
 
   if (!category) {
@@ -69,7 +91,8 @@ const CategoryPage = () => {
           <p className="text-gray-600 max-w-2xl mx-auto">{category.description}</p>
         </motion.div>
 
-        <div className="mb-8 flex justify-end">
+        {/* Sort Controls */}
+        <div className="mb-8 flex justify-end items-center">
           <div className="relative">
             <select
               value={sortBy}
@@ -88,23 +111,49 @@ const CategoryPage = () => {
           </div>
         </div>
 
-        {articles.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {articles.map((article) => (
-              <ArticleCard key={article.id} article={article} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <div className="text-5xl mb-4">🤔</div>
-            <h3 className="text-xl font-medium mb-2">No articles found</h3>
-            <p className="text-gray-600">Be the first to publish an article in this category!</p>
-          </div>
-        )}
+        {/* Recent Articles (Last 24 Hours) */}
+        <div className="mb-10">
+          <h2 className="text-2xl font-bold mb-6 text-gray-800">Recent Articles (Last 24 Hours)</h2>
+          
+          {recentArticles.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {recentArticles.map((article) => (
+                <ArticleCard key={article.id} article={article} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <div className="text-5xl mb-4">🕒</div>
+              <h3 className="text-xl font-medium mb-2">No recent articles</h3>
+              <p className="text-gray-600">There are no articles published in the last 24 hours.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-gray-200 my-10"></div>
+
+        {/* Previous Articles */}
+        <div>
+          <h2 className="text-2xl font-bold mb-6 text-gray-800">Previous Articles</h2>
+          
+          {previousArticles.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {previousArticles.map((article) => (
+                <ArticleCard key={article.id} article={article} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <div className="text-5xl mb-4">📚</div>
+              <h3 className="text-xl font-medium mb-2">No previous articles</h3>
+              <p className="text-gray-600">No articles older than 24 hours were found in this category.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
 export default CategoryPage
-

@@ -39,7 +39,7 @@ export const mockCategories = [
       categoryId: "defi",
       author: "0x1234567890abcdef1234567890abcdef12345678",
       authorName: "CryptoInsider",
-      createdAt: "2023-04-15T10:30:00Z",
+      createdAt: "2025-04-05T10:30:00Z",
       imageUrl: "/placeholder.svg?height=400&width=800",
       votes: 42,
       userVotes: [],

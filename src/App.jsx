@@ -10,6 +10,7 @@ import ArticlePage from "./pages/ArticlePage"
 import PublishPage from "./pages/PublishPage"
 import ProfilePage from "./pages/ProfilePage"
 import AdminDashboard from "./pages/AdminDashboard"
+import AboutPage from "./pages/AboutPage"
 import "./index.css"
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
                   <Route path="/" element={<HomePage />} />
                   <Route path="/category/:categoryId" element={<CategoryPage />} />
                   <Route path="/article/:articleId" element={<ArticlePage />} />
+                  <Route path="/about" element={<AboutPage />} />
                   <Route path="/publish" element={<PublishPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/admin" element={<AdminDashboard />} />

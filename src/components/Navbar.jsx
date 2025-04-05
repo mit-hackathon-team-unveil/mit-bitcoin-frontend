@@ -5,6 +5,7 @@ import { Link, useLocation } from "react-router-dom"
 import { useWallet } from "../context/WalletContext"
 import { useUser } from "../context/UserContext"
 import { motion } from "framer-motion"
+import logoImage from "../assets/images/Pokecut_1743884539083.png"
 
 const Navbar = () => {
   const { isConnected, walletAddress, connectWallet, disconnectWallet, isConnecting } = useWallet()
@@ -43,12 +44,16 @@ const Navbar = () => {
     >
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link to="/" className="flex items-center">
-          <motion.div whileHover={{ rotate: 10 }} className="text-3xl mr-2">
-            📰
+        <motion.div whileHover={{ rotate: 10 }} className="text-3xl mr-2">
+            {/* 📰 */}
           </motion.div>
-          <motion.h1 className="text-2xl font-bold gradient-text" whileHover={{ scale: 1.05 }}>
-            Web3News
-          </motion.h1>
+          <motion.div whileHover={{ scale: 1.05 }}>
+            <img 
+              src={logoImage} 
+              alt="Web3News" 
+              className="h-8 sm:h-10 md:h-12 lg:h-16 w-auto" 
+            />
+          </motion.div>
         </Link>
 
         {/* Desktop Navigation */}

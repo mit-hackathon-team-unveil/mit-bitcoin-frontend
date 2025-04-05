@@ -11,6 +11,18 @@
   --text: #1a202c;
 }
 
+[contenteditable="true"] {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: plaintext !important;
+}
+
+[contenteditable="true"] * {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: plaintext !important;
+}
+
 body {
   font-family: "Inter", sans-serif;
   color: var(--text);
