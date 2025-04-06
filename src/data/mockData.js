@@ -15,19 +15,19 @@ export const mockCategories = [
     id: "Entertainment",
     name: "Entertainment",
     description: "Decentralized Autonomous Organizations governance and proposals",
-    icon: "🏛️",
+    icon: "🎥",
   },
   {
     id: "Sports",
     name: "Sports",
     description: "Decentralized Autonomous Organizations governance and proposals",
-    icon: "🏛️",
+    icon: "🏈",
   },
   {
     id: "Technology",
     name: "Technology",
     description: "Decentralized Autonomous Organizations governance and proposals",
-    icon: "🏛️",
+    icon: "💻",
   },
   {
     id: "Miscellaneous",

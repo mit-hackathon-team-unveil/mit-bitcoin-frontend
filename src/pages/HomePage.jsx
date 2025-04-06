@@ -5,8 +5,17 @@ import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { useArticles } from "../context/ArticleContext"
 import { fetchAllArticles } from "../utils/articleApi"
+import { useWallet } from "../context/WalletContext"
+import CategoryCard from "../components/CategoryCard"
+import businessImage from "../assets/images/business.jpg"
+import technologyImage from "../assets/images/technology.jpg"
+import politicsImage from "../assets/images/politics.jpg"
+import sportsImage from "../assets/images/sports.jpg"
+import entertainmentImage from "../assets/images/entertainment.jpg"
+import misseleanous from "../assets/images/officepolitics.jpg"
 
 const HomePage = () => {
+  const { isConnected, connectWallet, isConnecting } = useWallet()
   const { articles: localArticles, categories } = useArticles()
   const [articles, setArticles] = useState([])
   const [selectedCategory, setSelectedCategory] = useState("all")
@@ -86,42 +95,71 @@ const HomePage = () => {
   };
 
   return (
+    
     <div className="pt-20">
+      <section className="bg-gradient-to-r from-[#30f2f2] to-[#1E212B] text-white py-20">
+        <div className="container mx-auto px-4 text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-4xl md:text-6xl font-bold mb-6"
+          >
+            Web3 News That Matters
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-xl md:text-2xl mb-10 max-w-3xl mx-auto"
+          >
+            Stay informed with the latest developments in DeFi, NFTs, and DAOs
+          </motion.p>
+
+          {!isConnected ? (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={connectWallet}
+              disabled={isConnecting}
+              className={`text-lg px-8 py-4 bg-white text-cyan-600 rounded-full font-bold shadow-lg hover:shadow-xl transition-all ${
+                isConnecting ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+            >
+              {isConnecting ? "Connecting..." : "Connect Wallet"}
+            </motion.button>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              <Link
+                to="/publish"
+                className="text-lg px-8 py-4 bg-white text-cyan-600 rounded-full font-bold shadow-lg hover:shadow-xl transition-all inline-block"
+              >
+                Publish an Article
+              </Link>
+            </motion.div>
+          )}
+        </div>
+      </section>
       {/* Category Filter Section */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Filter Articles by Category</h2>
+            <h2 className="text-3xl font-bold mb-4">Trending Categories</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Select a category to view articles specific to your interest
+              Explore the latest news and updates across different Web3 domains
             </p>
           </div>
 
-          {/* Inline CategoryFilter */}
-          <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
-            <button
-              onClick={() => setSelectedCategory("all")}
-              className={`px-4 py-2 rounded-full ${
-                selectedCategory === "all"
-                  ? "bg-cyan-600 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
-              } transition-colors font-medium`}
-            >
-              All Categories
-            </button>
-            
-            {getUniqueCategories().map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-4 py-2 rounded-full ${
-                  selectedCategory === category.id
-                    ? "bg-cyan-600 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-100"
-                } transition-colors font-medium`}
-              >
-                {category.name}
-              </button>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {categories.map((category) => (
+              <CategoryCard key={category.id} category={category} />
             ))}
           </div>
         </div>
@@ -170,11 +208,31 @@ const HomePage = () => {
                 >
                   <Link to={`/article/${article.articleId}`} className="block">
                     <div className="h-48 overflow-hidden relative">
-                      <img
-                        src={article.imageUrl || "/placeholder.svg"}
-                        alt={article.title}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="h-48 overflow-hidden relative">
+                        <img
+                          src={
+                            // Category-specific images
+                            (article.category === "Business" || article.categoryId === "category-business")
+                              ? businessImage
+                              : (article.category === "Technology" || article.categoryId === "category-technology")
+                                ? technologyImage
+                                : (article.category === "Politics" || article.categoryId === "category-politics")
+                                  ? politicsImage
+                                  : (article.category === "Sports" || article.categoryId === "category-sports")
+                                    ? sportsImage
+                                    : (article.category === "Entertainment" || article.categoryId === "category-entertainment")
+                                      ? entertainmentImage
+                                      : (article.category === "Miscellaneous" || article.categoryId === "category-miscellaneous")
+                                        ? misseleanous
+                                        // Fallback to article image or placeholder
+                                        // Use placeholder.svg if no image is provided
+                                        // Use a default image if no category matches
+                                : (article.imageUrl || "/placeholder.svg")
+                          }
+                          alt={article.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     </div>
                     
                     <div className="p-5">

@@ -334,10 +334,28 @@ const PublishPage = () => {
                     </div>
                     <p className="font-medium text-gray-800">Payment Invoice</p>
                     <p className="text-sm text-gray-500 mt-1">{paymentInfo.amountDue} satoshis</p>
-                    <p className="text-xs text-gray-400 mt-2 truncate w-full text-center">
-                      {paymentInfo.paymentAddress && `${paymentInfo.paymentAddress.substring(0, 16)}...`}
-                    </p>
-                    
+                    <div className="flex items-center justify-center mt-2">
+  <p className="text-xs text-gray-400">
+    {paymentInfo.paymentAddress && `${paymentInfo.paymentAddress.substring(0, 16)}...`}
+  </p>
+  
+  <button 
+    onClick={() => {
+      navigator.clipboard.writeText(paymentInfo.paymentAddress);
+      const button = document.getElementById('copy-btn');
+      button.classList.add('bg-green-600');
+      button.innerText = 'Copied!';
+      setTimeout(() => {
+        button.classList.remove('bg-green-600');
+        button.innerText = 'Copy';
+      }, 2000);
+    }}
+    id="copy-btn"
+    className="ml-2 px-2 py-0.5 bg-blue-500 hover:bg-blue-600 rounded text-xs text-white font-medium transition-colors"
+  >
+    Copy
+  </button>
+</div>
                     {paymentInfo.expiresAt && (
                       <p className="text-xs text-red-500 mt-2">
                         Expires at: {new Date(paymentInfo.expiresAt).toLocaleTimeString()}

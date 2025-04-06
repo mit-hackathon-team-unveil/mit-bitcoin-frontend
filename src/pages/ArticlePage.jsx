@@ -10,6 +10,12 @@ import VoteButtons from "../components/VoteButtons"
 import axios from "axios"
 // Import the fetchArticleById function
 import { fetchArticleById } from "../utils/articleApi"
+import businessImage from "../assets/images/business.jpg"
+import entertainmentImage from "../assets/images/entertainment.jpg"
+import politics from "../assets/images/politics.jpg"
+import sports from "../assets/images/sports.jpg"
+import technology from "../assets/images/technology.jpg"
+import misseleanous from "../assets/images/officepolitics.jpg"
 
 const ArticlePage = () => {
   const navigate = useNavigate()
@@ -244,7 +250,26 @@ const ArticlePage = () => {
 
             {/* Featured Image */}
             <div className="mb-8 rounded-xl overflow-hidden">
-              <img src={article.imageUrl || "/placeholder.svg"} alt={article.title} className="w-full h-auto" />
+              <img 
+                src={
+                  // Show business image when category is business
+                  (article.category === "Business" || article.categoryId === "category-business") 
+                    ? businessImage
+                    : (article.category === "Entertainment" || article.categoryId === "category-entertainment")
+                    ? entertainmentImage 
+                    : (article.category === "Politics" || article.categoryId === "category-politics")
+                    ? politics
+                    : (article.category === "Sports" || article.categoryId === "category-sports")     
+                    ? sports
+                    : (article.category === "Technology" || article.categoryId === "category-technology")
+                    ? technology
+                    : (article.category === "Miscellaneous" || article.categoryId === "category-miscellaneous")
+                    ? misseleanous
+                    : (article.imageUrl || "businessImaged.jpg")
+                } 
+                alt={article.title} 
+                className="w-full h-auto object-cover max-h-[400px]" 
+              />
             </div>
 
             {/* Article Content and Voting */}
