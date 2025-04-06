@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom"
 import { motion } from "framer-motion"
 import { useArticles } from "../context/ArticleContext"
 import ArticleCard from "../components/ArticleCard"
+import axios from "axios";
 
 const CategoryPage = () => {
   const { categoryId } = useParams()

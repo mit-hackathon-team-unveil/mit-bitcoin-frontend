@@ -2,8 +2,10 @@
   "name": "btc-app",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:5000",
   "dependencies": {
     "@tailwindcss/line-clamp": "^0.4.4",
+    "axios": "1.8.4",
     "@tailwindcss/typography": "^0.5.10",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.0.0",

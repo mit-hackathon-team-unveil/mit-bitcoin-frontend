@@ -7,7 +7,9 @@ import { useWallet } from "../context/WalletContext"
 import { useArticles } from "../context/ArticleContext"
 import ConnectWalletPrompt from "../components/ConnectWalletPrompt"
 import RichTextEditor from "../components/RichTextEditor"
-import { QRCodeSVG } from "qrcode.react" // Import QR code component
+import { QRCodeSVG } from "qrcode.react"
+import axios from "axios"
+import { REACT_APP_API_URL } from "../utils/constants"
 
 const PublishPage = () => {
   const { isConnected, walletAddress } = useWallet()
@@ -96,8 +98,11 @@ const PublishPage = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  // Fixed handleSubmit function to ensure article is saved
-  const handleSubmit = (e) => {
+  if (!isConnected) {
+    return <ConnectWalletPrompt message="Connect your wallet to publish an article" />
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     console.log("Form submission attempted")
 
@@ -116,7 +121,7 @@ const PublishPage = () => {
       const articleData = {
         title,
         content,
-        categoryId,
+        category: categoryId,
         imageUrl: imageUrl || "/placeholder.svg?height=400&width=800",
         author: walletAddress,
         authorName: authorName || "Anonymous",
@@ -125,37 +130,93 @@ const PublishPage = () => {
       
       console.log("Publishing article with data:", articleData)
       
-      // Call publishArticle synchronously - it should return the new article ID
-      const newArticleId = publishArticle(articleData)
+      let newArticleId;
       
-      if (!newArticleId) {
-        throw new Error("Failed to get article ID after publishing")
+      // Make API call to create article
+      try {
+        console.log("Making API request to:", `${REACT_APP_API_URL}/api/v1/articles`);
+        
+        // Updated axios configuration for CORS issues
+        const axiosConfig = {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          withCredentials: false
+        };
+        
+        // Try using a relative URL instead of absolute URL
+        const apiEndpoint = 'http://localhost:5050/api/v1/articles';
+        console.log("Using relative endpoint:", apiEndpoint);
+        
+        const response = await axios.post(apiEndpoint, articleData, axiosConfig);
+        
+        console.log("API response:", response.data);
+        
+        // Use the ID from the API response with proper fallbacks
+        newArticleId = response.data?.id || response.data?._id || response.data?.articleId;
+        
+        if (!newArticleId) {
+          console.warn("API response doesn't contain article ID:", response.data);
+          throw new Error("Missing article ID in API response");
+        }
+        
+        console.log("Article created via API with ID:", newArticleId);
+      } catch (apiError) {
+        console.error("API call failed:", apiError);
+        
+        // More detailed logging
+        if (apiError.response) {
+          console.error("Error response data:", apiError.response.data);
+          console.error("Error response status:", apiError.response.status);
+          console.error("Error response headers:", apiError.response.headers);
+        } else if (apiError.request) {
+          console.error("No response received:", apiError.request);
+        } else {
+          console.error("Error message:", apiError.message);
+        }
+        
+        console.log("Falling back to local publishing method");
+        
+        // Fallback to local publishing if API fails
+        newArticleId = publishArticle(articleData);
+        
+        if (!newArticleId) {
+          throw new Error("Local publishing also failed");
+        }
       }
       
       console.log("Article waiting for payment with ID:", newArticleId)
-      setFormMessage({ type: "success", text: "Articlsse published successfully!" })
+      setFormMessage({ type: "success", text: "Article published successfully!" })
       setPublishedArticleId(newArticleId)
       setShowSuccess(true)
-      
-      // Navigate to the published article after a delay
-      // setTimeout(() => {
-      //   navigate(`/article/${newArticleId}`)
-      // }, 10000) // Give users 10 seconds to see the QR codes
     } catch (error) {
-      console.error("Error publishing article:", error)
+      console.error("Error publishing article:", error);
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to publish article. Please try again.";
+      
+      if (error.response) {
+        // Backend error response
+        errorMessage = `Server error: ${error.response.data?.message || error.response.status}`;
+      } else if (error.request) {
+        // No response from server
+        errorMessage = "Server not responding. Check your internet connection.";
+      } else if (error.message) {
+        // Request setup error
+        errorMessage = `Error: ${error.message}`;
+      }
+      
       setFormMessage({ 
         type: "error", 
-        text: "Failed to publish article. Please try again." 
-      })
+        text: errorMessage
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
-  if (!isConnected) {
-    return <ConnectWalletPrompt message="Connect your wallet to publish an article" />
-  }
-
+  // Rest of your component remains the same...
   // Display the success page with QR codes
   if (showSuccess && publishedArticleId) {
     return (
@@ -178,42 +239,40 @@ const PublishPage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </motion.div>
-                <h2 className="text-3xl font-bold text-gray-800">Article waiting for payment!</h2>
-                <p className="text-gray-600 mt-2">Your article is ready to be published and is now waiting for payment.</p>
-                {/* <p className="text-gray-500 mt-1">You'll be redirected to your article shortly...</p> */}
+                <h2 className="text-3xl font-bold text-gray-800">Article Published Successfully!</h2>
+                <p className="text-gray-600 mt-2">Your article has been published and is now available to readers.</p>
               </div>
               
               <div className="mb-6">
-  <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Bitcoin Donation QR Code</h3>
-  <p className="text-gray-600 mb-6 text-center">Scan this QR code to donate. This code is for demonstration purposes only.</p>
-  
-  {/* Changed from grid to flex container with justify-center */}
-  <div className="flex justify-center">
-    {qrCodes.map((qr, index) => (
-      <motion.div 
-        key={index}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 + (index * 0.2) }}
-        className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col items-center max-w-xs"
-      >
-        <div className="mb-3 bg-white p-3 rounded-lg shadow-sm">
-          <QRCodeSVG 
-            value={`bitcoin:${qr.address}?amount=${qr.amount / 100000000}`} 
-            size={180} // Increased the size for better visibility
-            bgColor={"#ffffff"}
-            fgColor={"#000000"}
-            level={"M"}
-            includeMargin={false}
-          />
-        </div>
-        <p className="font-medium text-gray-800">{qr.label}</p>
-        <p className="text-sm text-gray-500 mt-1">{qr.amount} satoshis</p>
-        <p className="text-xs text-gray-400 mt-2 text-center">{qr.address.substring(0, 12)}...</p>
-      </motion.div>
-    ))}
-  </div>
-</div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Bitcoin Donation QR Codes</h3>
+                <p className="text-gray-600 mb-6 text-center">Scan any of these QR codes to donate. These codes are for demonstration purposes only.</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                  {qrCodes.map((qr, index) => (
+                    <motion.div 
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 + (index * 0.2) }}
+                      className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col items-center"
+                    >
+                      <div className="mb-3 bg-white p-3 rounded-lg shadow-sm">
+                        <QRCodeSVG 
+                          value={`bitcoin:${qr.address}?amount=${qr.amount / 100000000}`} 
+                          size={140}
+                          bgColor={"#ffffff"}
+                          fgColor={"#000000"}
+                          level={"M"}
+                          includeMargin={false}
+                        />
+                      </div>
+                      <p className="font-medium text-gray-800">{qr.label}</p>
+                      <p className="text-sm text-gray-500 mt-1">{qr.amount} satoshis</p>
+                      <p className="text-xs text-gray-400 mt-2 truncate w-full text-center">{qr.address.substring(0, 12)}...</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
               
               <div className="flex justify-center mt-6">
                 <motion.button
