@@ -29,8 +29,12 @@ const PublishPage = () => {
   const [errors, setErrors] = useState({})
   const [isEditing, setIsEditing] = useState(false)
   const [formMessage, setFormMessage] = useState({ type: "", text: "" })
-  const [showSuccess, setShowSuccess] = useState(false)
+  
+  // New payment tracking states
+  const [publishingState, setPublishingState] = useState("initial") // initial, awaiting-payment, paid, error
   const [publishedArticleId, setPublishedArticleId] = useState(null)
+  const [paymentInfo, setPaymentInfo] = useState(null)
+  const [pollingInterval, setPollingInterval] = useState(null)
 
   // For now, we'll assume captcha is always verified
   const isCaptchaVerified = true;
@@ -52,8 +56,44 @@ const PublishPage = () => {
     return codes;
   };
 
-  // Generate QR codes once for consistent display
-  const qrCodes = generateRandomQrData(1);
+  // Check payment status
+  const checkPaymentStatus = async (articleId) => {
+    if (!articleId) return;
+    
+    try {
+      console.log("Checking payment status for article:", articleId);
+      const response = await axios.get(`${REACT_APP_API_URL}/api/v1/payments/status/${articleId}`);
+      console.log("Payment status response:", response.data);
+      
+      if (response.data.status === 'paid') {
+        console.log("Payment received! Article is now published.");
+        clearInterval(pollingInterval);
+        setPublishingState("paid");
+      } else if (response.data.status === 'expired') {
+        console.log("Payment expired.");
+        clearInterval(pollingInterval);
+        setPublishingState("error");
+        setFormMessage({ 
+          type: "error", 
+          text: "Payment time expired. Please try publishing again." 
+        });
+      }
+      
+      return response.data.status;
+    } catch (error) {
+      console.error("Error checking payment status:", error);
+      return null;
+    }
+  };
+
+  // Clean up the polling interval when component unmounts
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
 
   useEffect(() => {
     if (editArticleId) {
@@ -66,14 +106,13 @@ const PublishPage = () => {
         setAuthorName(article.authorName || "")
         setIsEditing(true)
       } else {
-        // Handle article not found
         setFormMessage({ 
           type: "error", 
           text: "Article not found. You might be trying to edit an article that doesn't exist." 
         })
       }
     }
-  }, [editArticleId, getArticleById])
+  }, [editArticleId, getArticleById]);
 
   const validateForm = () => {
     const newErrors = {}
@@ -131,12 +170,12 @@ const PublishPage = () => {
       console.log("Publishing article with data:", articleData)
       
       let newArticleId;
+      let paymentDetails;
       
       // Make API call to create article
       try {
         console.log("Making API request to:", `${REACT_APP_API_URL}/api/v1/articles`);
         
-        // Updated axios configuration for CORS issues
         const axiosConfig = {
           headers: {
             'Content-Type': 'application/json',
@@ -145,23 +184,49 @@ const PublishPage = () => {
           withCredentials: false
         };
         
-        // Try using a relative URL instead of absolute URL
-        const apiEndpoint = 'http://localhost:5050/api/v1/articles';
-        console.log("Using relative endpoint:", apiEndpoint);
+        const apiEndpoint = `${REACT_APP_API_URL}/api/v1/articles`;
+        console.log("Using endpoint:", apiEndpoint);
         
         const response = await axios.post(apiEndpoint, articleData, axiosConfig);
         
         console.log("API response:", response.data);
         
-        // Use the ID from the API response with proper fallbacks
-        newArticleId = response.data?.id || response.data?._id || response.data?.articleId;
+        // Extract article ID and payment details
+        newArticleId = response.data?.articleId;
+        paymentDetails = {
+          invoiceId: response.data?.payment.invoiceId,
+          paymentAddress: response.data?.payment.bolt11,
+          amountDue: response.data?.amountDue,
+          expiresAt: response.data?.expiresAt,
+          status: response.data?.status,
+          qrCodeUrl: response.data?.qrCodeUrl,
+        };
         
         if (!newArticleId) {
           console.warn("API response doesn't contain article ID:", response.data);
           throw new Error("Missing article ID in API response");
         }
         
-        console.log("Article created via API with ID:", newArticleId);
+        // Check if the article is already in "paid" status (unlikely but possible)
+        if (response.data?.status === 'paid') {
+          console.log("Article already paid and published!");
+          setPublishingState("paid");
+        } else {
+          // Article is pending payment
+          console.log("Article created and waiting for payment with ID:", newArticleId);
+          setPublishingState("awaiting-payment");
+          
+          // Set up payment polling
+          const intervalId = setInterval(() => {
+            checkPaymentStatus(newArticleId);
+          }, 5000); // Check every 5 seconds
+          
+          setPollingInterval(intervalId);
+        }
+        
+        setPublishedArticleId(newArticleId);
+        setPaymentInfo(paymentDetails);
+        
       } catch (apiError) {
         console.error("API call failed:", apiError);
         
@@ -180,30 +245,25 @@ const PublishPage = () => {
         
         // Fallback to local publishing if API fails
         newArticleId = publishArticle(articleData);
+        setPublishedArticleId(newArticleId);
+        setPublishingState("paid"); // Assume paid since local publishing
         
         if (!newArticleId) {
           throw new Error("Local publishing also failed");
         }
       }
-      
-      console.log("Article waiting for payment with ID:", newArticleId)
-      setFormMessage({ type: "success", text: "Article published successfully!" })
-      setPublishedArticleId(newArticleId)
-      setShowSuccess(true)
     } catch (error) {
       console.error("Error publishing article:", error);
+      setPublishingState("error");
       
       // Provide more specific error messages
       let errorMessage = "Failed to publish article. Please try again.";
       
       if (error.response) {
-        // Backend error response
         errorMessage = `Server error: ${error.response.data?.message || error.response.status}`;
       } else if (error.request) {
-        // No response from server
         errorMessage = "Server not responding. Check your internet connection.";
       } else if (error.message) {
-        // Request setup error
         errorMessage = `Error: ${error.message}`;
       }
       
@@ -216,9 +276,109 @@ const PublishPage = () => {
     }
   }
 
-  // Rest of your component remains the same...
-  // Display the success page with QR codes
-  if (showSuccess && publishedArticleId) {
+  // Payment pending view with real payment information
+  if (publishingState === "awaiting-payment" && paymentInfo) {
+    return (
+      <div className="pt-24 pb-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="bg-white p-6 md:p-8 rounded-lg shadow-lg"
+            >
+              <div className="text-center mb-8">
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                  className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </motion.div>
+                <h2 className="text-3xl font-bold text-gray-800">Payment Required</h2>
+                <p className="text-gray-600 mt-2">Your article has been received and is awaiting payment confirmation.</p>
+              </div>
+              
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Bitcoin Payment QR Code</h3>
+                <p className="text-gray-600 mb-6 text-center">Scan the QR code to pay {paymentInfo.amountDue} satoshis.</p>
+                
+                <div className="flex justify-center">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col items-center"
+                  >
+                    <div className="mb-3 bg-white p-3 rounded-lg shadow-sm">
+                      {paymentInfo.qrCodeUrl ? (
+                        <img 
+                          src={paymentInfo.qrCodeUrl}
+                          alt="Payment QR Code" 
+                          width={200}
+                          height={200}
+                        />
+                      ) : (
+                        <QRCodeSVG 
+                          value={`bitcoin:${paymentInfo.paymentAddress}?amount=${paymentInfo.amountDue / 100000000}`} 
+                          size={200}
+                          bgColor={"#ffffff"}
+                          fgColor={"#000000"}
+                          level={"M"}
+                          includeMargin={false}
+                        />
+                      )}
+                    </div>
+                    <p className="font-medium text-gray-800">Payment Invoice</p>
+                    <p className="text-sm text-gray-500 mt-1">{paymentInfo.amountDue} satoshis</p>
+                    <p className="text-xs text-gray-400 mt-2 truncate w-full text-center">
+                      {paymentInfo.paymentAddress && `${paymentInfo.paymentAddress.substring(0, 16)}...`}
+                    </p>
+                    
+                    {paymentInfo.expiresAt && (
+                      <p className="text-xs text-red-500 mt-2">
+                        Expires at: {new Date(paymentInfo.expiresAt).toLocaleTimeString()}
+                      </p>
+                    )}
+                  </motion.div>
+                </div>
+                
+                <div className="mt-8 text-center">
+                  <p className="text-gray-600">
+                    Please complete the payment to publish your article. 
+                    This page will automatically update once payment is confirmed.
+                  </p>
+                  <div className="mt-4 flex justify-center">
+                    <div className="inline-block">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
+                    </div>
+                    <span className="ml-3 text-gray-700">Waiting for payment confirmation...</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-center mt-6">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate("/dashboard")}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                >
+                  Go Back to Dashboard
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Success view shown after payment is confirmed
+  if (publishingState === "paid" && publishedArticleId) {
     return (
       <div className="pt-24 pb-16">
         <div className="container mx-auto px-4">
@@ -240,48 +400,31 @@ const PublishPage = () => {
                   </svg>
                 </motion.div>
                 <h2 className="text-3xl font-bold text-gray-800">Article Published Successfully!</h2>
-                <p className="text-gray-600 mt-2">Your article has been published and is now available to readers.</p>
+                <p className="text-gray-600 mt-2">Your payment has been confirmed and your article is now available to readers.</p>
               </div>
               
-              <div className="mb-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Bitcoin Donation QR Codes</h3>
-                <p className="text-gray-600 mb-6 text-center">Scan any of these QR codes to donate. These codes are for demonstration purposes only.</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
-                  {qrCodes.map((qr, index) => (
-                    <motion.div 
-                      key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 + (index * 0.2) }}
-                      className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col items-center"
-                    >
-                      <div className="mb-3 bg-white p-3 rounded-lg shadow-sm">
-                        <QRCodeSVG 
-                          value={`bitcoin:${qr.address}?amount=${qr.amount / 100000000}`} 
-                          size={140}
-                          bgColor={"#ffffff"}
-                          fgColor={"#000000"}
-                          level={"M"}
-                          includeMargin={false}
-                        />
-                      </div>
-                      <p className="font-medium text-gray-800">{qr.label}</p>
-                      <p className="text-sm text-gray-500 mt-1">{qr.amount} satoshis</p>
-                      <p className="text-xs text-gray-400 mt-2 truncate w-full text-center">{qr.address.substring(0, 12)}...</p>
-                    </motion.div>
-                  ))}
-                </div>
+              <div className="mb-6 text-center">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Payment Confirmed</h3>
+                <p className="text-green-600 font-medium">Thank you for your payment! Your article is now live.</p>
               </div>
               
-              <div className="flex justify-center mt-6">
+              <div className="flex justify-center space-x-4 mt-6">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate(`/article/${publishedArticleId}`)}
                   className="px-6 py-3 bg-cyan-500 text-white rounded-lg font-medium hover:bg-cyan-600 transition-colors"
                 >
-                  View My Article Now
+                  View My Article
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate("/dashboard")}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                >
+                  Go to Dashboard
                 </motion.button>
               </div>
             </motion.div>
@@ -291,6 +434,7 @@ const PublishPage = () => {
     );
   }
 
+  // Regular form view
   return (
     <div className="pt-24 pb-16">
       <div className="container mx-auto px-4">
@@ -309,6 +453,9 @@ const PublishPage = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Form fields remain the same */}
+              {/* ... existing form fields ... */}
+              
               {/* Title */}
               <div>
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">

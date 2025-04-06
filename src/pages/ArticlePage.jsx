@@ -7,6 +7,7 @@ import { useArticles } from "../context/ArticleContext"
 import { useWallet } from "../context/WalletContext"
 import { useUser } from "../context/UserContext"
 import VoteButtons from "../components/VoteButtons"
+import axios from "axios";
 
 const ArticlePage = () => {
   const { articleId } = useParams()
