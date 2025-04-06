@@ -7,7 +7,7 @@ const VoteButtons = ({ article }) => {
   const { isConnected, walletAddress, connectWallet } = useWallet()
   const { voteArticle } = useArticles()
 
-  const userVote = article.userVotes.find((vote) => vote.walletAddress === walletAddress)?.voteType
+  const userVote = 0;
 
   const handleVote = (voteType) => {
     if (!isConnected) {
